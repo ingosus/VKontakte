@@ -29,6 +29,11 @@ class Provider extends AbstractProvider implements ProviderInterface
     ];
 
     /**
+     * @var array
+     */
+    protected $email = [];
+
+    /**
      * {@inheritdoc}
      */
     protected function getAuthUrl($state)
@@ -74,13 +79,26 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function mapUserToObject(array $user)
     {
+        $uid = Arr::get($user, 'uid');
         return (new User())->setRaw($user)->map([
-            'id'       => Arr::get($user, 'uid'),
+            'id'       => $uid,
             'nickname' => Arr::get($user, 'screen_name'),
             'name'     => trim(Arr::get($user, 'first_name').' '.Arr::get($user, 'last_name')),
-            'email'    => Arr::get($user, 'email'),
+            'email'    => Arr::get($user, 'email') ?? $this->email[$uid] ?? null,
             'avatar'   => Arr::get($user, 'photo'),
         ]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAccessTokenResponse($code)
+    {
+        $response = parent::getAccessTokenResponse($code);
+
+        $this->email[$response['user_id']] = $response['email'] ?? null;
+
+        return $response;
     }
 
     /**
